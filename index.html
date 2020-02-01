@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Varian's duopoly model</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+    <style>
+        h2 {padding-top: 10px;}
+    </style>
+  </head>
+
+  
+
+  <body>
+    <div id="varians" class="container">
+        <h1>Varian's duopoly model</h1>
+
+
+        <h2>Input data</h2>
+        <table class="table table-dark" id="input-data">
+            <thead>
+            <tr>
+                <th scope="col">Group</th>
+                <th scope="col">Mass</th>
+                <th scope="col">Max budget</th>
+                <th scope="col">Informed (%)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <th scope="row">GroupA</th>
+                <td id="mass0"><input type=number min=0 v-model="groups[0].mass"></td>
+                <td id="budget0"><input type=number min=0 v-model="groups[0].budget"></td>
+                <td id="informed0"><input type=number min=0 max=100 v-model="groups[0].informed"></td>
+            </tr>
+            <tr>
+                <th scope="row">GroupB</th>
+                <td id="mass1"><input type=number min=0 v-model="groups[1].mass"></td>
+                <td id="budget1"><input type=number min=0 v-model="groups[1].budget"></td>
+                <td id="informed1"><input type=number min=0 max=100 v-model="groups[1].informed"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Attracted customers</h2>
+        <table class="table table-bordered table-dark" id="results"  style="float:center">
+            <thead>
+            <tr>
+                <th scope="col"></th>
+                <th scope="col">price1 	&#60; price2</th>
+                <th scope="col">price1 = price2</th>
+                <th scope="col">price1 	&#62; price2</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <th scope="row">0 ≤ price1 ≤ {{smallerbudget}}</th>
+                <td id="case1" v-bind:class="[ currentcase==1 ? 'bg-primary' : '']">{{case1}}</td>
+                <td id="case2" v-bind:class="[ currentcase==2 ? 'bg-primary' : '']">{{case2}}</td>
+                <td id="case3" v-bind:class="[ currentcase==3 ? 'bg-primary' : '']">{{case3}}</td>
+            </tr>
+            <tr>
+                <th scope="row">{{smallerbudget}} &#60; price1 ≤ {{largerbudget}}</th>
+                <td id="case4" v-bind:class="[ currentcase==4 ? 'bg-primary' : '']">{{case4}}</td>
+                <td id="case5" v-bind:class="[ currentcase==5 ? 'bg-primary' : '']">{{case5}}</td>
+                <td id="case6" v-bind:class="[ currentcase==6 ? 'bg-primary' : '']">{{case6}}</td>
+            </tr>
+            <tr>
+                <th scope="row">{{largerbudget}} &#60; price1</th>
+                <td id="case7" colspan=3 v-bind:class="[ currentcase==7 ? 'bg-primary' : '']">{{case7}}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Income calculator</h2>
+        <form >
+            <div class="form-group row">
+              <label for="p1"  class="col-sm-4 col-md-3">price1 - {{p1}}</label>
+              <input id="p1" name="p1" class="form-control col-sm-8 col-md-9" type="range" min="0" :max="largerbudget*1.5" v-model="p1">
+              <label for="p2"  class="col-sm-4 col-md-3">price2 - {{p2}}</label>
+              <input id="p2" name="p2" class="form-control col-sm-8 col-md-9" type="range" min="0" :max="largerbudget*1.5" v-model="p2">
+            </div>
+        </form>
+        <div>Total income: {{p1}} * {{currentcustomer}} = {{p1*currentcustomer}}</div>
+        <div>The best price1 would be {{bestresponse.p1}} with the income of {{bestresponse.income}}.</div>
+
+        <canvas id="myChart" width="400" height="200">{{charttriggerer}}</canvas>
+    
+    </div>   
+</div>
+    
+
+    <script src="https://unpkg.com/vue"></script>
+    <script>    
+
+    
+    
+    const app = new Vue({
+        el: '#varians',
+        data: {
+            groups: [
+                {mass: 100,   budget: 20, informed: 50,},
+                {mass: 250,   budget: 30, informed: 25,},
+            ],
+            p1: 0,
+            p2: 0,
+
+        },  
+        computed: {
+            smalleridx(){if(this.groups[0].budget<=this.groups[1].budget) return 0; else return 1; },
+            largeridx(){return 1-this.smalleridx;},
+            smallerbudget(){return this.groups[this.smalleridx].budget;},
+            largerbudget(){return this.groups[this.largeridx].budget;},
+            Is(){return this.groups[this.smalleridx].mass * this.groups[this.smalleridx].informed / 100;},
+            Ns(){return this.groups[this.smalleridx].mass * (1 - this.groups[this.smalleridx].informed / 100);},
+            Il(){return this.groups[this.largeridx].mass * this.groups[this.largeridx].informed / 100;},
+            Nl(){return this.groups[this.largeridx].mass * (1 - this.groups[this.largeridx].informed / 100);},
+            case1(){return     1 * this.Is   +   0.5 * this.Ns   +     1 * this.Il   +   0.5 * this.Nl   ;},
+            case2(){return   0.5 * this.Is   +   0.5 * this.Ns   +   0.5 * this.Il   +   0.5 * this.Nl   ;},
+            case3(){return     0 * this.Is   +   0.5 * this.Ns   +     0 * this.Il   +   0.5 * this.Nl   ;},
+            case4(){return     0 * this.Is   +     0 * this.Ns   +     1 * this.Il   +   0.5 * this.Nl   ;},
+            case5(){return     0 * this.Is   +     0 * this.Ns   +   0.5 * this.Il   +   0.5 * this.Nl   ;},
+            case6(){return     0 * this.Is   +     0 * this.Ns   +     0 * this.Il   +   0.5 * this.Nl   ;},
+            case7(){return     0 * this.Is   +     0 * this.Ns   +     0 * this.Il   +     0 * this.Nl   ;},
+            currentcase(){return this.getcase(Number(this.p1),Number(this.p2))},
+            currentcustomer(){return this.getcustomer(this.currentcase);},
+            bestresponse(){return this.getbestresponse(Number(this.p2));},
+            chartXprice1(){ return Array.from(Array(this.largerbudget+2).keys())},
+            chartYcustomer(){
+                return this.chartXprice1.map(function(p1){
+                    return this.getcustomer(this.getcase(p1,Number(this.p2)));
+                },this);
+            },
+            chartYincome(){
+                return this.chartXprice1.map(function(p1){
+                    return this.getincome(p1,this.p2);
+                },this);
+            },
+            charttriggerer(){
+                if(window.myChart) {
+                    myChart.labels=this.chartXprice1;
+                    myChart.data.datasets[0].data=this.chartYincome;
+                    myChart.data.datasets[1].data=this.chartYcustomer;
+                    myChart.update();
+                }
+                return this.groups + this.p2;
+            }
+        },
+        methods : {
+            getcase: function(p1,p2){
+                if (p1>this.largerbudget) return 7; 
+                else {
+                    var toReturn=1;
+                    if(p1>this.smallerbudget) toReturn+=3;
+                    if(p1>=p2) toReturn+=1;
+                    if(p1>p2) toReturn+=1;
+                    return toReturn;
+                }
+
+            }, 
+            getcustomer: function(c){
+                switch(c){
+                    case 1: return this.case1;
+                    case 2: return this.case2;
+                    case 3: return this.case3;
+                    case 4: return this.case4;
+                    case 5: return this.case5;
+                    case 6: return this.case6;
+                    case 7: return this.case7;
+                    default: return 0;
+                }
+            },
+            getincome: function(p1,p2){
+                return p1 * this.getcustomer(this.getcase(p1,p2));
+            },
+            getbestresponse: function(p2){
+                var best={'p1': 0, 'income': 0};
+                [this.smallerbudget,this.largerbudget,Number(this.p2)-1,Number(this.p2)].forEach(p1 => {
+                    if(this.getincome(p1,p2) > best.income) best={'p1':p1, 'income':this.getincome(p1,p2)};
+                });
+                return best;
+            },            
+        },
+    })
+    
+    var myChart = new Chart(document.getElementById('myChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: app.chartXprice1,
+                datasets: [
+                    {
+                        label:'Income',
+                        yAxisID: 'Income',
+                        fill: false,
+					    backgroundColor: "rgba(0,222,0,0.9)",
+                        borderColor: "rgba(0,222,0,0.9)",
+                        lineTension: 0,
+                        data: app.chartYincome
+                    },
+                    {
+                        label: 'Customers',
+                        yAxisID: 'Customers',
+                        steppedLine: true,
+                        fill: true,
+					    backgroundColor: "rgba(0,0,100,0.5)",
+					    borderColor: "rgba(0,0,100,1)",
+                        data: app.chartYcustomer
+                    }
+                ]
+            },
+            options: {
+                animation: false,
+                scales: {
+                yAxes: [{
+                    id: 'Income',
+                    label: 'Income',
+                    type: 'linear',
+                    position: 'right',
+                }, {
+                    id: 'Customers',
+                    type: 'linear',
+                    position: 'left',
+                }]
+                }
+            }
+        });   
+    
+    </script>
+
+    
+
+
+  </body>
+</html>
